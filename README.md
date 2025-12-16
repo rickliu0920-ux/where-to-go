@@ -1,2 +1,278 @@
 # where-to-go
 China main land
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <title>去哪玩 - 旅行目的地抽签</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .lottery-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        .province-display {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .btn {
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .history-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin: 5px 0;
+            color: #fff;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .shaking {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 50%;
+            animation: confetti-fall 3s ease-in-out forwards;
+            z-index: 1000;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-10vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="lottery-container p-8 max-w-md w-full mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">去哪玩</h1>
+            <p class="text-blue-100">点击按钮抽取旅行目的地</p>
+        </div>
+        
+        <div class="bg-white/20 rounded-xl p-8 mb-8 text-center">
+            <div id="provinceDisplay" class="province-display mb-4">准备开始</div>
+            <div class="text-blue-100 text-sm" id="statusText">点击下方按钮抽取目的地</div>
+        </div>
+        
+        <div class="flex flex-col gap-4">
+            <button id="startBtn" class="btn bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-6 rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-green-600 hover:to-blue-600">
+                <i data-lucide="play"></i>
+                开始抽取
+            </button>
+            <button id="stopBtn" class="btn bg-gradient-to-r from-red-500 to-orange-500 text-white py-3 px-6 rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-red-600 hover:to-orange-600" disabled>
+                <i data-lucide="stop-circle"></i>
+                停止抽取
+            </button>
+            <button id="resetBtn" class="btn bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-purple-600 hover:to-pink-600">
+                <i data-lucide="refresh-cw"></i>
+                重置
+            </button>
+        </div>
+        
+        <div class="mt-8">
+            <h3 class="text-white font-semibold mb-3 flex items-center gap-2">
+                <i data-lucide="history"></i>
+                抽取历史
+            </h3>
+            <div id="historyList" class="max-h-40 overflow-y-auto pr-2">
+                <!-- 历史记录将在这里动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 中国所有省级区域（旅行目的地）
+        const provinces = [
+            '北京市', '天津市', '河北省', '山西省', '内蒙古自治区',
+            '辽宁省', '吉林省', '黑龙江省', '上海市', '江苏省',
+            '浙江省', '安徽省', '福建省', '江西省', '山东省',
+            '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区',
+            '海南省', '重庆市', '四川省', '贵州省', '云南省',
+            '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区',
+            '新疆维吾尔自治区', '香港特别行政区', '澳门特别行政区', '台湾省'
+        ];
+
+        let availableProvinces = [...provinces];
+        let isRunning = false;
+        let intervalId = null;
+        let history = [];
+
+        const provinceDisplay = document.getElementById('provinceDisplay');
+        const statusText = document.getElementById('statusText');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const historyList = document.getElementById('historyList');
+
+        // 初始化图标
+        lucide.createIcons();
+
+        function getRandomProvince() {
+            const randomIndex = Math.floor(Math.random() * provinces.length);
+            return provinces[randomIndex];
+        }
+
+        function startLottery() {
+
+            isRunning = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            
+            statusText.textContent = '正在抽取目的地...';
+            
+            intervalId = setInterval(() => {
+                const randomProvince = getRandomProvince();
+                provinceDisplay.textContent = randomProvince;
+                provinceDisplay.classList.add('shaking');
+                
+                // 移除动画类以便下次触发
+                setTimeout(() => {
+                    provinceDisplay.classList.remove('shaking');
+                }, 500);
+            }, 100);
+        }
+
+        function stopLottery() {
+            if (!isRunning) return;
+
+            isRunning = false;
+            clearInterval(intervalId);
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+
+            const selectedProvince = provinceDisplay.textContent;
+            history.unshift({
+                province: selectedProvince,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            updateHistory();
+            createConfetti();
+            statusText.textContent = `已选中: ${selectedProvince}`;
+        }
+
+        function resetLottery() {
+            isRunning = false;
+            clearInterval(intervalId);
+            
+            history = [];
+            
+            provinceDisplay.textContent = '准备开始';
+            statusText.textContent = '点击下方按钮开始';
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            updateHistory();
+        }
+
+        function updateHistory() {
+            historyList.innerHTML = '';
+            history.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item flex justify-between items-center';
+                historyItem.innerHTML = `
+                    <span class="font-medium">#${index + 1} ${item.province}</span>
+                    <span class="text-xs opacity-75">${item.timestamp}</span>
+                `;
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        function createConfetti() {
+            const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                
+                document.body.appendChild(confetti);
+                
+                // 动画结束后移除元素
+                confetti.addEventListener('animationend', () => {
+                    confetti.remove();
+                });
+            }
+        }
+
+        // 事件监听器
+        startBtn.addEventListener('click', startLottery);
+        stopBtn.addEventListener('click', stopLottery);
+        resetBtn.addEventListener('click', resetLottery);
+
+        // 键盘快捷键支持
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (isRunning) {
+                    stopLottery();
+                } else {
+                    startLottery();
+                }
+            } else if (e.code === 'KeyR') {
+                resetLottery();
+            }
+        });
+    </script>
+</body>
+</html>
